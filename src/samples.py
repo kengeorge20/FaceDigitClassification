@@ -17,40 +17,20 @@ DATUM_HEIGHT = 0 # in pixels
 ## Module Classes
 
 class Datum:
-    """
-    A datum is a pixel-level encoding of digits or face/non-face edge maps.
-
-    Digits are from the MNIST dataset and face images are from the 
-    easy-faces and background categories of the Caltech 101 dataset.
-    
-    Each digit is 28x28 pixels, and each face/non-face image is 60x74 
-    pixels, each pixel can take the following values:
-      0: no edge (blank)
-      1: gray pixel (+) [used for digits only]
-      2: edge [for face] or black pixel [for digit] (#)
-      
-    Pixel data is stored in the 2-dimensional array pixels, which
-    maps to pixels on a plane according to standard euclidean axes
-    with the first dimension denoting the horizontal and the second
-    the vertical coordinate:
-    
-      For example, the + in the above diagram is stored in pixels[2][3], or
-      more generally pixels[column][row].
-      
-    The contents of the representation can be accessed directly
-    via the getPixel and getPixels methods.
-    """
     def __init__(self, data, width, height):
-        DATUM_HEIGHT = height
-        DATUM_WIDTH = width
-        self.height = DATUM_HEIGHT
-        self.width = DATUM_WIDTH
-        if data == None:
-            data = [[' ' for i in range(DATUM_WIDTH)] for j in range(DATUM_HEIGHT)]
-        self.pixels = data
+        self.width = width
+        self.height = height
+        self.pixels = [[' ' for _ in range(width)] for _ in range(height)]
+        
+        # Populate the pixels array with provided data
+        for i in range(min(len(data), height)):
+            for j in range(min(len(data[i]), width)):
+                self.pixels[i][j] = data[i][j]
 
     def getPixel(self, column, row):
-        return self.pixels[column][row]
+        if 0 <= row < self.height and 0 <= column < self.width:
+            return self.pixels[row][column]
+        return ' '  # Default value if out of bounds
 
     def getPixels(self):
         return self.pixels
