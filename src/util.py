@@ -118,23 +118,44 @@ class Counter(dict):
             self[key] /= divisor
 
     def __mul__(self, y):
-        "Multiplying two counters gives the dot product of their vectors where each unique label is a vector element."
-        sum = 0
-        x = self
-        if len(x) > len(y):
-            x, y = y, x
-        for key in x:
-            if key not in y:
-                continue
-            sum += x[key] * y[key]
-        return sum
+        """
+        Multiplying two counters gives the dot product of their vectors where
+        each unique label is a vector element.
+
+        If 'y' is not a Counter, attempt to return a simple multiplication result
+        for each element in the Counter.
+        """
+        if isinstance(y, Counter):
+            # Perform dot product only if 'y' is a Counter
+            sum = 0
+            x = self
+            for key in x:
+                if key in y:
+                    sum += x[key] * y[key]
+            return sum
+        else:
+            # If 'y' is not a Counter, try to multiply all elements by 'y'
+            result = Counter()
+            for key in self:
+                result[key] = self[key] * y
+            return result
+
 
     def __add__(self, y):
-        "Adding two counters gives a counter with the union of all keys and counts of the second added to counts of the first."
-        result = Counter(self)
-        for key, value in y.items():
-            result[key] += value
-        return result
+        """
+        Adds two counters or adds a scalar to all elements of the counter
+        if 'y' is not a Counter.
+        """
+        if isinstance(y, Counter):
+            result = Counter(self)
+            for key, value in y.items():
+                result[key] += value
+            return result
+        elif isinstance(y, (int, float)):  # If y is a number, add it to all elements
+            return Counter({k: v + y for k, v in self.items()})
+        else:
+            raise TypeError("Unsupported operand type(s) for +: 'Counter' and '{}'".format(type(y).__name__))
+
 
     def __sub__(self, y):
         "Subtracting a counter from another gives a counter with the union of all keys and counts of the second subtracted from counts of the first."
