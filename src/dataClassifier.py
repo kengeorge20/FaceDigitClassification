@@ -97,6 +97,32 @@ def readCommand(argv):
 
     return args, options
 
+def analysis(classifier, guesses, testLabels, testData, rawTestData, printImage):
+    print("Analysis of the results")
+    errors = []
+
+    for i in range(len(guesses)):
+        predicted = guesses[i]
+        truth = testLabels[i]
+
+        if predicted == truth:
+            if len(errors) < 5:  # Only print a few correct classifications
+                print("===================================")
+                print("Correctly classified example #%d" % i)
+                print("Predicted: %d; Truth: %d" % (predicted, truth))
+                printImage(rawTestData[i].getPixels())
+        else:
+            errors.append((i, predicted, truth))
+            if len(errors) <= 5:  # Limit to first few errors
+                print("===================================")
+                print("Misclassified example #%d" % i)
+                print("Predicted: %d; Truth: %d" % (predicted, truth))
+                printImage(rawTestData[i].getPixels())
+
+    # Example: Calculate and print overall accuracy
+    accuracy = float(sum(1 for i in range(len(guesses)) if guesses[i] == testLabels[i])) / len(guesses)
+    print("Overall accuracy: %.2f%%" % (accuracy * 100))
+
 def runClassifier(args, options):
     featureFunction = args['featureFunction']
     classifier = args['classifier']
@@ -129,7 +155,7 @@ def runClassifier(args, options):
     guesses = classifier.classify(testData)
     correct = sum(guesses[i] == testLabels[i] for i in range(len(testLabels)))
     print("%d correct out of %d (%.1f%%)." % (correct, len(testLabels), 100.0 * correct / len(testLabels)))
-    # analysis(classifier, guesses, testLabels, testData, rawTestData, printImage)
+    analysis(classifier, guesses, testLabels, testData, rawTestData, printImage)
 
 if __name__ == '__main__':
     args, options = readCommand(sys.argv[1:])  # Get game components based on input
