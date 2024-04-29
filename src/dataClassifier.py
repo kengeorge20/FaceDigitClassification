@@ -89,8 +89,7 @@ def readCommand(argv):
     if options.classifier == "perceptron":
         classifier = perceptron.PerceptronClassifier(legalLabels, 3)  # Assume default 3 iterations
     elif options.classifier == "neuralNet":
-        classifier = neuralNet.NeuralNetworkClassifier(legalLabels, DIGIT_DATUM_WIDTH * DIGIT_DATUM_HEIGHT, 100, len(legalLabels))
-
+        classifier = neuralNet.NeuralNetworkClassifier(legalLabels)
     args['classifier'] = classifier
     args['featureFunction'] = featureFunction
     args['printImage'] = lambda image: image  # Replace this with actual function to print image if needed

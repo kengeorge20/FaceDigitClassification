@@ -1,59 +1,63 @@
 import numpy as np
 from classificationMethod import ClassificationMethod
-from util import Counter
 
 class NeuralNetworkClassifier(ClassificationMethod):
-    def __init__(self, legalLabels, input_size, hidden_size, output_size, learning_rate=0.01, max_iterations=10):
-        super().__init__(legalLabels)
+    def __init__(self, legalLabels, hidden_units=500, learning_rate=0.01, epochs=100):
+        super(NeuralNetworkClassifier, self).__init__(legalLabels)
+        self.hidden_units = hidden_units
         self.learning_rate = learning_rate
-        self.input_size = input_size
-        self.hidden_size = hidden_size
-        self.output_size = output_size
-        self.max_iterations = max_iterations
+        self.epochs = epochs
+        self.weights1 = None
+        self.weights2 = None
+        self.output_units = len(legalLabels)
 
-        # Initialize weights
-        self.weights_input_hidden = np.random.randn(self.input_size, self.hidden_size) * np.sqrt(2. / self.input_size)
-        self.weights_hidden_output = np.random.randn(self.hidden_size, self.output_size) * np.sqrt(2. / self.hidden_size)
-        self.bias_hidden = np.zeros((1, self.hidden_size))
-        self.bias_output = np.zeros((1, self.output_size))
+    def initialize_weights(self, input_size):
+        # He initialization for weights of ReLU activation
+        self.weights1 = np.random.randn(input_size, self.hidden_units) * np.sqrt(2. / input_size)
+        self.weights2 = np.random.randn(self.hidden_units, self.output_units) * np.sqrt(2. / self.hidden_units)
+
+    def forward_propagation(self, data):
+        # Check and print data shape for debugging
+        # print("Data shape entering forward_propagation:", data.shape)
+        # print("Weights1 shape:", self.weights1.shape)
+        self.z1 = np.dot(data, self.weights1)
+        self.a1 = np.maximum(0, self.z1)  # ReLU
+        self.z2 = np.dot(self.a1, self.weights2)
+        self.a2 = np.exp(self.z2) / np.sum(np.exp(self.z2), axis=1, keepdims=True)
+        return self.a2
+
+    def compute_cost(self, predictions, labels):
+        # Cross-entropy loss
+        correct_log_probs = -np.log(predictions[range(len(labels)), labels])
+        loss = np.sum(correct_log_probs) / len(labels)
+        return loss
+
+    def backward_propagation(self, data, labels):
+        num_examples = data.shape[0]
+        delta3 = self.a2
+        delta3[range(num_examples), labels] -= 1
+        dW2 = (self.a1.T).dot(delta3)
+        dW1 = (data.T).dot((delta3.dot(self.weights2.T)) * (self.z1 > 0))  # Only backpropagate errors where ReLU is active
+
+        # Gradient descent parameter update
+        self.weights1 -= self.learning_rate * dW1 / num_examples
+        self.weights2 -= self.learning_rate * dW2 / num_examples
 
     def train(self, trainingData, trainingLabels, validationData, validationLabels):
-        for epoch in range(self.max_iterations):
-            for x, y in zip(trainingData, trainingLabels):
-                x = self._ensure_numpy_array(x)
-                y = np.array(y)  # Assuming y is already in a suitable format like one-hot or a list of numbers
-
-                # Forward pass
-                z1 = np.dot(x, self.weights_input_hidden) + self.bias_hidden
-                a1 = self.sigmoid(z1)
-                z2 = np.dot(a1, self.weights_hidden_output) + self.bias_output
-                a2 = self.sigmoid(z2)
-
-                # Backward pass
-                delta2 = (a2 - y) * self.sigmoid_prime(z2)
-                delta1 = np.dot(delta2, self.weights_hidden_output.T) * self.sigmoid_prime(z1)
-
-                # Update weights
-                self.weights_hidden_output -= self.learning_rate * np.dot(a1.T, delta2)
-                self.weights_input_hidden -= self.learning_rate * np.dot(x.reshape(1, -1).T, delta1)
-                self.bias_output -= self.learning_rate * np.sum(delta2, axis=0, keepdims=True)
-                self.bias_hidden -= self.learning_rate * np.sum(delta1, axis=0, keepdims=True)
+        trainingData = np.array([list(d.values()) for d in trainingData])
+        trainingLabels = np.array(trainingLabels)
+        self.initialize_weights(trainingData.shape[1])
+        for epoch in range(self.epochs):
+            predictions = self.forward_propagation(trainingData)
+            loss = self.compute_cost(predictions, trainingLabels)
+            self.backward_propagation(trainingData, trainingLabels)
+            # print("Epoch %d: Loss %f" % (epoch, loss))
 
     def classify(self, data):
-        data = np.array([self._ensure_numpy_array(d) for d in data])
-        z1 = np.dot(data, self.weights_input_hidden) + self.bias_hidden
-        a1 = self.sigmoid(z1)
-        z2 = np.dot(a1, self.weights_hidden_output) + self.bias_output
-        return np.argmax(self.sigmoid(z2), axis=1)
-
-    def sigmoid(self, z):
-        return 1 / (1 + np.exp(-z))
-
-    def sigmoid_prime(self, z):
-        sig = self.sigmoid(z)
-        return sig * (1 - sig)
-
-    def _ensure_numpy_array(self, counter):
-        if isinstance(counter, Counter):
-            return np.array([counter.get(i, 0) for i in range(self.input_size)])
-        return counter
+        # Ensure data is in numpy array form and correctly shaped
+        data = np.array([list(d.values()) for d in data])
+        if data.ndim == 1:  # This is a check to reshape the data if it's incorrectly flattened
+            data = data.reshape(1, -1)  # Reshape to 2D array with one instance per row
+        output_probs = self.forward_propagation(data)
+        predictions = np.argmax(output_probs, axis=1)
+        return predictions
