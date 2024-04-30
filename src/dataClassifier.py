@@ -25,13 +25,53 @@ def basicFeatureExtractorDigit(datum):
             features[(x, y)] = datum.getPixel(x, y) > 0
     return features
 
+def calculate_symmetry(datum, width, height):
+    horizontal_symmetry = sum(1 for x in range(width) for y in range(height) if datum.getPixel(x, y) == datum.getPixel(width - x - 1, y))
+    vertical_symmetry = sum(1 for x in range(width) for y in range(height) if datum.getPixel(x, y) == datum.getPixel(x, height - y - 1))
+    return horizontal_symmetry / (width * height), vertical_symmetry / (width * height)
+
+def count_white_regions(datum, width, height):
+    visited = set()
+    regions = 0
+
+    def dfs(x, y):
+        if (x, y) in visited or not datum.getPixel(x, y):
+            return
+        stack = [(x, y)]
+        while stack:
+            cx, cy = stack.pop()
+            if (cx, cy) in visited:
+                continue
+            visited.add((cx, cy))
+            for dx, dy in [(-1, 0), (1, 0), (0, -1), (0, 1)]:
+                nx, ny = cx + dx, cy + dy
+                if 0 <= nx < width and 0 <= ny < height and datum.getPixel(nx, ny):
+                    stack.append((nx, ny))
+
+    for x in range(width):
+        for y in range(height):
+            if datum.getPixel(x, y) and (x, y) not in visited:
+                dfs(x, y)
+                regions += 1
+
+    return regions
+
 def enhancedFeatureExtractorDigit(datum):
     """
     Enhanced feature extraction for digits.
     """
     features = basicFeatureExtractorDigit(datum)
-    # Example: add a feature for counting the number of white regions
-    # Implement your enhancements here
+    width, height = DIGIT_DATUM_WIDTH, DIGIT_DATUM_HEIGHT
+
+    # Symmetry features
+    h_symmetry, v_symmetry = calculate_symmetry(datum, width, height)
+    features[('horizontal_symmetry')] = h_symmetry
+    features[('vertical_symmetry')] = v_symmetry
+
+    # White region count
+    num_white_regions = count_white_regions(datum, width, height)
+    features[('num_white_regions')] = num_white_regions
+
     return features
 
 def basicFeatureExtractorFace(datum):
@@ -46,8 +86,19 @@ def enhancedFeatureExtractorFace(datum):
     Enhanced feature extraction for faces.
     """
     features = basicFeatureExtractorFace(datum)
-    # Example: add a feature for specific patterns (e.g., eyes, mouth)
-    # Implement your enhancements here
+    width, height = FACE_DATUM_WIDTH, FACE_DATUM_HEIGHT
+
+    # Define regions for eyes and mouth
+    # Assuming faces are aligned and centered
+    eye_region = [(x, y) for x in range(width // 4, 3 * width // 4) for y in range(height // 4, height // 2)]
+    mouth_region = [(x, y) for x in range(width // 4, 3 * width // 4) for y in range(3 * height // 4, height)]
+
+    # Calculate the density of 'on' pixels in these regions
+    eye_density = sum(datum.getPixel(x, y) for x, y in eye_region) / len(eye_region)
+    mouth_density = sum(datum.getPixel(x, y) for x, y in mouth_region) / len(mouth_region)
+
+    features[('eye_density')] = eye_density
+    features[('mouth_density')] = mouth_density
     return features
 
 def readCommand(argv):
