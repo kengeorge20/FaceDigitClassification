@@ -149,25 +149,21 @@ def readCommand(argv):
 
 def analysis(classifier, guesses, testLabels, testData, rawTestData, printImage):
     print("Analysis of the results")
-    errors = []
-
+    
     for i in range(len(guesses)):
         predicted = guesses[i]
         truth = testLabels[i]
 
         if predicted == truth:
-            if len(errors) < 5:  # Only print a few correct classifications
-                print("===================================")
-                print("Correctly classified example #%d" % i)
-                print("Predicted: %d; Truth: %d" % (predicted, truth))
-                printImage(rawTestData[i].getPixels())
+            print("===================================")
+            print(f"Correctly classified example #{i}")
+            print(f"Predicted: {predicted}; Truth: {truth}")
+            printImage(rawTestData[i].getPixels())
         else:
-            errors.append((i, predicted, truth))
-            if len(errors) <= 5:  # Limit to first few errors
-                print("===================================")
-                print("Misclassified example #%d" % i)
-                print("Predicted: %d; Truth: %d" % (predicted, truth))
-                printImage(rawTestData[i].getPixels())
+            print("===================================")
+            print(f"Misclassified example #{i}")
+            print(f"Predicted: {predicted}; Truth: {truth}")
+            printImage(rawTestData[i].getPixels())
 
     # Example: Calculate and print overall accuracy
     accuracy = float(sum(1 for i in range(len(guesses)) if guesses[i] == testLabels[i])) / len(guesses)

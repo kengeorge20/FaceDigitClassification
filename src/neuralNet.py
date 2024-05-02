@@ -2,7 +2,7 @@ import numpy as np
 from classificationMethod import ClassificationMethod
 
 class NeuralNetworkClassifier(ClassificationMethod):
-    def __init__(self, legalLabels, hidden_units=500, learning_rate=0.01, epochs=100):
+    def __init__(self, legalLabels, hidden_units=500, learning_rate=0.1, epochs=100):
         super(NeuralNetworkClassifier, self).__init__(legalLabels)
         self.hidden_units = hidden_units
         self.learning_rate = learning_rate
