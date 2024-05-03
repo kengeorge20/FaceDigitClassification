@@ -29,7 +29,7 @@ class PerceptronClassifier:
         predicts a label, and updates the model if the prediction is wrong.
         """
         for iteration in range(self.max_iterations):
-            print("Starting iteration", iteration, "...")
+            # print("Starting iteration", iteration, "...")
             for i in range(len(trainingData)):
                 current_features = trainingData[i]
                 actual_label = trainingLabels[i]

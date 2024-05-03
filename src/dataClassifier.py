@@ -17,6 +17,8 @@ DIGIT_DATUM_WIDTH = 28
 DIGIT_DATUM_HEIGHT = 28
 FACE_DATUM_WIDTH = 60
 FACE_DATUM_HEIGHT = 70
+TOTAL_DIGITS = 5000  
+TOTAL_FACES = 451   
 
 def basicFeatureExtractorDigit(datum):
     features = util.Counter()
@@ -107,7 +109,7 @@ def readCommand(argv):
 
     parser.add_argument('-c', '--classifier', help='The type of classifier [Default: %(default)s]', choices=['perceptron', 'neuralNet'], default='perceptron')
     parser.add_argument('-d', '--data', help='Dataset to use [Default: %(default)s]', choices=['digits', 'faces'], default='digits')
-    parser.add_argument('-t', '--training', help='The size of the training set [Default: %(default)s]', default=100, type=int)
+    parser.add_argument('-p', '--percent', help='Percentage of training data to use [Default: 100]', default=100, type=int)
     parser.add_argument('-e', '--enhanced', help='Use enhanced features [Default: %(default)s]', action='store_true', default=False)
 
     options = parser.parse_args(argv)
@@ -117,37 +119,39 @@ def readCommand(argv):
     print("--------------------")
     print("Data:\t\t" + options.data)
     print("Classifier:\t\t" + options.classifier)
-    print("Training set size:\t" + str(options.training))
+    print("Training set percentage:\t" + str(options.percent) + "%")
     print("Using enhanced features:\t" + str(options.enhanced))
 
     if options.data == "digits":
         featureFunction = enhancedFeatureExtractorDigit if options.enhanced else basicFeatureExtractorDigit
+        legalLabels = list(range(10))
+        totalDataSize = TOTAL_DIGITS
     elif options.data == "faces":
         featureFunction = enhancedFeatureExtractorFace if options.enhanced else basicFeatureExtractorFace
+        legalLabels = list(range(2))
+        totalDataSize = TOTAL_FACES
     else:
         print("Unknown dataset", options.data)
         sys.exit(2)
 
-    if options.data == "digits":
-        legalLabels = list(range(10))
-    else:
-        legalLabels = list(range(2))
+    numTraining = int((options.percent / 100.0) * totalDataSize)
 
-    if options.training <= 0:
-        print("Training set size should be a positive integer (you provided: %d)" % options.training)
+    if numTraining <= 0:
+        print("Training set size should be a positive integer (you provided: %d)" % numTraining)
         sys.exit(2)
 
     if options.classifier == "perceptron":
         classifier = perceptron.PerceptronClassifier(legalLabels, 3)  # Assume default 3 iterations
     elif options.classifier == "neuralNet":
         classifier = neuralNet.NeuralNetworkClassifier(legalLabels)
+    
     args['classifier'] = classifier
     args['featureFunction'] = featureFunction
-    args['printImage'] = lambda image: image  # Replace this with actual function to print image if needed
+    args['numTraining'] = numTraining
 
     return args, options
 
-def analysis(classifier, guesses, testLabels, testData, rawTestData, printImage):
+def analysis(classifier, guesses, testLabels, testData, rawTestData):
     print("Analysis of the results")
     
     for i in range(len(guesses)):
@@ -158,12 +162,10 @@ def analysis(classifier, guesses, testLabels, testData, rawTestData, printImage)
             print("===================================")
             print(f"Correctly classified example #{i}")
             print(f"Predicted: {predicted}; Truth: {truth}")
-            printImage(rawTestData[i].getPixels())
         else:
             print("===================================")
             print(f"Misclassified example #{i}")
             print(f"Predicted: {predicted}; Truth: {truth}")
-            printImage(rawTestData[i].getPixels())
 
     # Example: Calculate and print overall accuracy
     accuracy = float(sum(1 for i in range(len(guesses)) if guesses[i] == testLabels[i])) / len(guesses)
@@ -172,10 +174,8 @@ def analysis(classifier, guesses, testLabels, testData, rawTestData, printImage)
 def runClassifier(args, options):
     featureFunction = args['featureFunction']
     classifier = args['classifier']
-    printImage = args['printImage']
+    numTraining = args['numTraining']
 
-    # Load data  
-    numTraining = options.training
     numTest = TEST_SET_SIZE
 
     if(options.data == "faces"):
@@ -189,19 +189,17 @@ def runClassifier(args, options):
         rawTestData = samples.loadDataFile("digitdata/testimages", numTest, DIGIT_DATUM_WIDTH, DIGIT_DATUM_HEIGHT)
         testLabels = samples.loadLabelsFile("digitdata/testlabels", numTest)
 
-    # Extract features
     print("Extracting features...")
     trainingData = list(map(featureFunction, rawTrainingData))
     testData = list(map(featureFunction, rawTestData))
 
-    # Conduct training and testing
     print("Training...")
     classifier.train(trainingData, trainingLabels, None, None)
     print("Testing...")
     guesses = classifier.classify(testData)
     correct = sum(guesses[i] == testLabels[i] for i in range(len(testLabels)))
     print("%d correct out of %d (%.1f%%)." % (correct, len(testLabels), 100.0 * correct / len(testLabels)))
-    analysis(classifier, guesses, testLabels, testData, rawTestData, printImage)
+    analysis(classifier, guesses, testLabels, testData, rawTestData)
 
 if __name__ == '__main__':
     args, options = readCommand(sys.argv[1:])  # Get game components based on input
