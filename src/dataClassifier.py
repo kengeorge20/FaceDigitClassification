@@ -11,6 +11,8 @@ import samples
 import sys
 import util
 import neuralNet
+import time
+import random
 
 TEST_SET_SIZE = 100
 DIGIT_DATUM_WIDTH = 28
@@ -189,17 +191,26 @@ def runClassifier(args, options):
         rawTestData = samples.loadDataFile("digitdata/testimages", numTest, DIGIT_DATUM_WIDTH, DIGIT_DATUM_HEIGHT)
         testLabels = samples.loadLabelsFile("digitdata/testlabels", numTest)
 
+    # Randomize training data and labels together
+    combined = list(zip(rawTrainingData, trainingLabels))
+    random.shuffle(combined)
+    rawTrainingData, trainingLabels = zip(*combined)
+
     print("Extracting features...")
     trainingData = list(map(featureFunction, rawTrainingData))
     testData = list(map(featureFunction, rawTestData))
 
     print("Training...")
+    start_time = time.time()
     classifier.train(trainingData, trainingLabels, None, None)
+    train_duration = time.time() - start_time
     print("Testing...")
+
     guesses = classifier.classify(testData)
     correct = sum(guesses[i] == testLabels[i] for i in range(len(testLabels)))
     print("%d correct out of %d (%.1f%%)." % (correct, len(testLabels), 100.0 * correct / len(testLabels)))
     analysis(classifier, guesses, testLabels, testData, rawTestData)
+    print(f"Training completed in {train_duration:.2f} seconds.")
 
 if __name__ == '__main__':
     args, options = readCommand(sys.argv[1:])  # Get game components based on input
