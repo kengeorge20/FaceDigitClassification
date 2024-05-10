@@ -1,7 +1,7 @@
 Authors:
-kg705, Ken George
-sk2327, Shreyas Krishnan
-gb495, George Benoy
+Ken George
+Shreyas Krishnan
+George Benoy
 
 To Run:
 python dataClassifier.py -e
